@@ -78,7 +78,7 @@ class reaction_record_dataset(Dataset):
                         self.processed_filepaths.append(processed_filepath)
                     continue
 
-                reaction = reaction_record(reaction_smiles, self.SUBSTRUCTURE_KEYS)
+                reaction = reaction_record(reaction_smiles)
 
                 if self.pre_filter is not None and not self.pre_filter(reaction):
                     continue
@@ -99,5 +99,5 @@ class reaction_record_dataset(Dataset):
         processed_filepath = self.processed_filepaths[idx]
         reaction_data = torch.load(processed_filepath) # load graph
 
-        return reaction_data.pyg_data
+        return reaction_data.pyg_data, reaction_data.rhs_smiles
         # TODO: return rhs smiles also
