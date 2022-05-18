@@ -64,17 +64,16 @@ def train():
     for epoch in range(cfg.EPOCHS):
         running_loss = 0.0
         for idx, train_batch in enumerate(train_loader):
+
             graph_batch, target_smiles_batch = train_batch
-            print(type(graph_batch))
-            print(graph_batch.size)
             graph_batch = graph_batch.to(device)
-            target_smiles_batch = target_smiles_batch.to(device)
+            # target_smiles_batch = target_smiles_batch.to(device) #! tuple of strings (this wont work)
             optimizer.zero_grad()
 
             ## STEP 1: Standard Message passing operation on the graph
             # train_batch.x = 'BATCH' graph and train_batch.edge_matrix = 'BATCH' edge matrix
             atom_enc_features = model_enc(
-                train_batch.x.float(), train_batch.edge_index, train_batch.edge_attr.float()
+                graph_batch.x.float(), graph_batch.edge_index, graph_batch.edge_attr.float()
             )
 
             ## STEP 2: Forward pass on atom features using a feedforward network
@@ -85,7 +84,8 @@ def train():
 
             ## STEP 3: Generate the RHS text sequence from atom latent vectors
             print(atom_mlp_features.shape)
-            break
+            print(graph_batch.batch)
+            exit()
 
 
             # loss = criterion(scores, train_batch.target.unsqueeze(1).float())
