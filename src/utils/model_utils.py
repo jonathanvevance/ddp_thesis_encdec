@@ -3,27 +3,26 @@
 import os
 import torch
 
-# from models.mpnn_models import GCN_2layer
-# from models.mpnn_models import GAT_2layer
-# from models.mlp_models import NeuralNet
-# from models.mlp_models import ScoringNetwork
+from models.mpnn_models import GCN_2layer
+from models.mpnn_models import GAT_2layer
+from models.mlp_models import NeuralNet
 
 
 def load_models(cfg):
 
-    # # model_mpnn = GAT_2layer(2, 32, 'train')
-    # model_mpnn = GCN_2layer(2, 32, 'train')
-    # model_feedforward = NeuralNet() # TODO
-    # model_scoring = ScoringNetwork()
+    # model_mpnn = GAT_2layer(2, 32, 'train')
+    model_mpnn = GCN_2layer(2, 32, 'train')
+    model_feedforward = NeuralNet() # TODO
+    model_scoring = NeuralNet()
 
-    # # if saved model exists, load it
+    # if saved model exists, load it
     # if cfg.LOAD_MODEL_PATH and os.path.exists(cfg.LOAD_MODEL_PATH):
     #     model_weights = torch.load(cfg.LOAD_MODEL_PATH)
     #     model_mpnn.load_state_dict(model_weights['mpnn'])
     #     model_feedforward.load_state_dict(model_weights['feedforward'])
     #     model_scoring.load_state_dict(model_weights['scoring'])
 
-    # return model_mpnn, model_feedforward, model_scoring
+    return model_mpnn, model_feedforward, model_scoring
 
     pass
 
