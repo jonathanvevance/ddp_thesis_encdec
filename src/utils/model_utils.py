@@ -12,7 +12,7 @@ def load_models(cfg):
 
     # model_mpnn = GAT_2layer(2, 32, 'train')
     model_mpnn = GCN_2layer(2, 32, 'train')
-    model_feedforward = NeuralNet() # TODO
+    model_enc = NeuralNet() # TODO
     model_scoring = NeuralNet()
 
     # if saved model exists, load it
@@ -22,7 +22,7 @@ def load_models(cfg):
     #     model_feedforward.load_state_dict(model_weights['feedforward'])
     #     model_scoring.load_state_dict(model_weights['scoring'])
 
-    return model_mpnn, model_feedforward, model_scoring
+    return model_mpnn, model_enc, model_scoring
 
     pass
 

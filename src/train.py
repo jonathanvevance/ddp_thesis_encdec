@@ -21,6 +21,7 @@ import configs.train_cfg as cfg
 from data.dataset import reaction_record_dataset
 from utils.model_utils import load_models
 from utils.model_utils import save_models
+from utils.torch_utils import groupby_pad_batch
 
 
 
@@ -46,18 +47,22 @@ def train():
     train_loader = DataLoader(train_dataset, batch_size = cfg.BATCH_SIZE, shuffle = True)
 
     # ----- Load models
-    model_enc, model_feedforward, model_dec = load_models(cfg)
+    model_mpnn, model_enc, model_dec = load_models(cfg)
 
     # ----- Get available device
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    model_enc = model_enc.to(device)
+    model_mpnn = model_mpnn.to(device)
     model_dec = model_dec.to(device)
 
-    if model_feedforward:
-        model_feedforward = model_feedforward.to(device)
+    if model_enc:
+        model_enc = model_enc.to(device)
+        all_params = chain(
+            model_mpnn.parameters(), model_enc.parameters(), model_dec.parameters()
+        )
+    else:
+        all_params = chain(model_mpnn.parameters(), model_dec.parameters())
 
     # ----- Load training settings
-    all_params = chain(model_enc.parameters(), model_dec.parameters())
     optimizer = torch.optim.Adam(all_params, lr = cfg.LR, weight_decay = cfg.WEIGHT_DECAY)
     criterion = torch.nn.BCELoss() # TODO: seq2seq loss
 
@@ -72,21 +77,21 @@ def train():
 
             ## STEP 1: Standard Message passing operation on the graph
             # train_batch.x = 'BATCH' graph and train_batch.edge_matrix = 'BATCH' edge matrix
-            atom_enc_features = model_enc(
+            atom_enc_features = model_mpnn(
                 graph_batch.x.float(), graph_batch.edge_index, graph_batch.edge_attr.float()
             )
 
-            ## STEP 2: Forward pass on atom features using a feedforward network
-            if model_feedforward:
-                atom_mlp_features = model_feedforward(atom_enc_features)
-            else:
-                atom_mlp_features = atom_enc_features
+            ## Step 2: Reshape graph batch into Transformer compatible inputs
+            atom_enc_feat_batched = groupby_pad_batch(
+                atom_enc_features, graph_batch.batch, cfg.MAX_LHS_NUM_ATOMS
+            )
 
-            ## STEP 3: Generate the RHS text sequence from atom latent vectors
-            print(atom_mlp_features.shape)
-            print(graph_batch.batch)
+            ## STEP 3: Forward pass on atom features using a Transformer Encoder
+            if model_enc:
+                atom_enc_features = model_enc(atom_enc_features)
+
+            ## STEP 4: Generate the RHS text sequence from atom latent vectors
             exit()
-
 
             # loss = criterion(scores, train_batch.target.unsqueeze(1).float())
 
