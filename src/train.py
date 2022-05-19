@@ -82,13 +82,13 @@ def train():
             )
 
             ## Step 2: Reshape graph batch into Transformer compatible inputs
-            atom_enc_feat_batched = groupby_pad_batch(
-                atom_enc_features, graph_batch.batch, cfg.MAX_LHS_NUM_ATOMS
+            atom_enc_feat_batched, batch_pad_mask = groupby_pad_batch(
+                atom_enc_features, graph_batch.batch
             )
 
             ## STEP 3: Forward pass on atom features using a Transformer Encoder
             if model_enc:
-                atom_enc_features = model_enc(atom_enc_features)
+                atom_enc_feat_batched = model_enc(atom_enc_feat_batched, batch_pad_mask)
 
             ## STEP 4: Generate the RHS text sequence from atom latent vectors
             exit()
