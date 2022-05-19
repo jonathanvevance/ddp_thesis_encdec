@@ -72,7 +72,7 @@ def train():
 
             graph_batch, target_smiles_batch = train_batch
             graph_batch = graph_batch.to(device)
-            # target_smiles_batch = target_smiles_batch.to(device) #! tuple of strings (this wont work)
+            # target_smiles_batch = target_smiles_batch.to(device) # TODO: make one-hot batch from dataset.py...
             optimizer.zero_grad()
 
             ## STEP 1: Standard Message passing operation on the graph
@@ -82,21 +82,20 @@ def train():
             )
 
             ## Step 2: Reshape graph batch into Transformer compatible inputs
-            atom_enc_feat_batched, batch_pad_mask = groupby_pad_batch(
+            atom_enc_features_batched, batch_pad_mask = groupby_pad_batch(
                 atom_enc_features, graph_batch.batch
             )
 
             ## STEP 3: Forward pass on atom features using a Transformer Encoder
             if model_enc:
-                atom_enc_feat_batched = model_enc(atom_enc_feat_batched, batch_pad_mask)
+                atom_enc_features_batched = model_enc(atom_enc_features_batched, batch_pad_mask)
 
             ## STEP 4: Generate the RHS text sequence from atom latent vectors
             exit()
 
-            # loss = criterion(scores, train_batch.target.unsqueeze(1).float())
-
-            # loss.backward()
-            # optimizer.step()
+            loss = criterion(output, targets)
+            loss.backward()
+            optimizer.step()
 
             # # print statistics
             # running_loss += loss.item()

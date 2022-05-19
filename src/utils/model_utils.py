@@ -5,15 +5,20 @@ import torch
 
 from models.mpnn_models import GCN_2layer
 from models.mpnn_models import GAT_2layer
-from models.mlp_models import NeuralNet
 
+torch.nn.TransformerDecoderLayer(
+    d_model = 32,
+    n_head = 8,
+    num_encoder_layers = 6,
+
+)
 
 def load_models(cfg):
 
     # model_mpnn = GAT_2layer(2, 32, 'train')
     model_mpnn = GCN_2layer(2, 32, 'train')
-    model_enc = NeuralNet() # TODO
-    model_scoring = NeuralNet()
+    model_enc = None # TODO
+    model_dec = None # TODO
 
     # if saved model exists, load it
     # if cfg.LOAD_MODEL_PATH and os.path.exists(cfg.LOAD_MODEL_PATH):
@@ -22,7 +27,7 @@ def load_models(cfg):
     #     model_feedforward.load_state_dict(model_weights['feedforward'])
     #     model_scoring.load_state_dict(model_weights['scoring'])
 
-    return model_mpnn, model_enc, model_scoring
+    return model_mpnn, model_enc, model_dec
 
     pass
 

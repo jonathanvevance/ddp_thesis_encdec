@@ -17,8 +17,8 @@ class GCN_2layer(torch.nn.Module):
         # self.conv2 = GeneralConv(16, out_features, in_edge_channels = 2) # TODO: put 2 in cfg
 
         # mpnn without edge attributes
-        self.conv1 = GCNConv(in_features, 16)
-        self.conv2 = GCNConv(16, out_features)
+        self.conv1 = GCNConv(in_features, 128)
+        self.conv2 = GCNConv(128, out_features)
 
     def forward(self, x, edge_index, edge_attr):
 
@@ -44,9 +44,9 @@ class GAT_2layer(torch.nn.Module):
 
         # mpnn without edge attributes
         self.conv1 = GATConv(
-            in_features, 16, heads = in_head, dropout = 0.6)
+            in_features, 128, heads = in_head, dropout = 0.6)
         self.conv2 = GATConv(
-            16 * in_head, out_features, concat = False, heads = out_head, dropout = 0.6)
+            128 * in_head, out_features, concat = False, heads = out_head, dropout = 0.6)
 
     def forward(self, x, edge_index, edge_attr):
 

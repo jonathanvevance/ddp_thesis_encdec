@@ -100,4 +100,4 @@ class reaction_record_dataset(Dataset):
         reaction_data = torch.load(processed_filepath) # load graph
 
         return reaction_data.pyg_data, reaction_data.rhs_smiles
-        # TODO: return rhs smiles also
+        # TODO: make one-hot batch here...
