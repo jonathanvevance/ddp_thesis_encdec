@@ -1,4 +1,6 @@
-"""Python file with atom features utilities."""
+"""Python file with rdkit utilities."""
+
+from rdkit import Chem
 
 def get_pyg_graph_requirements(mol):
 
@@ -34,3 +36,12 @@ def get_pyg_graph_requirements(mol):
         'x': x, 'edge_index': edge_index, 'edge_attr': edge_attr,
     }
     return pyg_requirements
+
+
+def remove_atom_maps_from_smi(smi):
+    """Remove atom maps from smiles."""
+    mol = Chem.MolFromSmiles(smi)
+    for a in mol.GetAtoms():
+        a.SetAtomMapNum(0)
+    smi_cleaned = Chem.MolToSmiles(mol)
+    return smi_cleaned

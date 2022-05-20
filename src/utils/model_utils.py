@@ -6,13 +6,6 @@ import torch
 from models.mpnn_models import GCN_2layer
 from models.mpnn_models import GAT_2layer
 
-torch.nn.TransformerDecoderLayer(
-    d_model = 32,
-    n_head = 8,
-    num_encoder_layers = 6,
-
-)
-
 def load_models(cfg):
 
     # model_mpnn = GAT_2layer(2, 32, 'train')

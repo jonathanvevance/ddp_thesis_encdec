@@ -7,15 +7,17 @@ from rdkit import Chem
 from torch_geometric.data import Data
 from torch_geometric.data import Dataset
 
-from rdkit_helpers.features import get_pyg_graph_requirements
+from utils.rdkit_utils import get_pyg_graph_requirements
+from utils.rdkit_utils import remove_atom_maps_from_smi
+from utils.vocab_utils import Vocabulary
+from utils.vocab_utils import smi_tokenizer
 
 PROCESSED_DATASET_LOC = 'data/processed/'
 
 class reaction_record:
-    def __init__(self, reaction_smiles):
+    def __init__(self, reaction_smiles, vocabulary):
 
         lhs_smiles, rhs_smiles = reaction_smiles.split(">>")
-        self.rhs_smiles = rhs_smiles
         self.lhs_mol = Chem.MolFromSmiles(lhs_smiles)
 
         pyg_requirements = get_pyg_graph_requirements(self.lhs_mol)
@@ -24,6 +26,14 @@ class reaction_record:
             edge_index = torch.tensor(pyg_requirements['edge_index']),
             edge_attr = torch.tensor(pyg_requirements['edge_attr']),
         )
+
+        rhs_wordidx_list = []
+        rhs_smiles = rhs_smiles.split(' ')[0] # HACK to remove junk chars from end of rhs
+        rhs_smi_sentence = smi_tokenizer(remove_atom_maps_from_smi(rhs_smiles))
+        for word in rhs_smi_sentence.split(' '):
+            rhs_wordidx_list.append(vocabulary.to_index(word))
+
+        self.rhs_wordidx_tensor = torch.Tensor(rhs_wordidx_list)
 
 class reaction_record_dataset(Dataset):
 
@@ -45,17 +55,44 @@ class reaction_record_dataset(Dataset):
         ) # None to skip downloading (see FAQ)
 
         self.mode = mode
+        self.vocab = None
         self.dataset_filepath = dataset_filepath
         self.processed_mode_dir = os.path.join(PROCESSED_DATASET_LOC, self.mode)
         self.processed_filepaths = []
 
         self.process_reactions()
 
+    def get_smiles_vocab(self):
+        """Get smiles vocabulary and save to disk (if unsaved)."""
+        vocab_savepath = os.path.join(PROCESSED_DATASET_LOC, 'vocab.pt')
+        if os.path.exists(vocab_savepath):
+            self.vocab = torch.load(vocab_savepath)
+            return
+
+        self.vocab = Vocabulary()
+        num_rxns = sum(1 for line in open(self.dataset_filepath, "r"))
+        with open(self.dataset_filepath, "r") as train_dataset:
+            for rxn_num, reaction_smiles in enumerate(tqdm(
+                train_dataset, desc = f"Getting vocabulary from train smiles", total = num_rxns
+            )):
+
+                lhs_smiles, rhs_smiles = reaction_smiles.split(">>")
+                lhs_smi_sentence = smi_tokenizer(remove_atom_maps_from_smi(lhs_smiles))
+                rhs_smiles = rhs_smiles.split(' ')[0] # HACK to remove junk chars from end of rhs
+                rhs_smi_sentence = smi_tokenizer(remove_atom_maps_from_smi(rhs_smiles))
+                self.vocab.add_sentence(lhs_smi_sentence)
+                self.vocab.add_sentence(rhs_smi_sentence)
+
+        torch.save(self.vocab, vocab_savepath)
+
     def process_reactions(self):
         """Process each reaction in the dataset."""
 
         if not os.path.exists(self.processed_mode_dir):
             os.makedirs(self.processed_mode_dir)
+
+        if self.mode == 'train':
+            self.get_smiles_vocab()
 
         reaction_files = os.listdir(self.processed_mode_dir)
         if len(reaction_files):
@@ -70,7 +107,7 @@ class reaction_record_dataset(Dataset):
                 train_dataset, desc = f"Preparing {self.mode} reactions", total = num_rxns
             )):
 
-                if rxn_num == 500: return # TODO: remove
+                if rxn_num == 50000: return # TODO: remove
 
                 processed_filepath = os.path.join(self.processed_mode_dir, f'rxn_{rxn_num}.pt')
                 if rxn_num < start_from + 1:
@@ -78,7 +115,7 @@ class reaction_record_dataset(Dataset):
                         self.processed_filepaths.append(processed_filepath)
                     continue
 
-                reaction = reaction_record(reaction_smiles)
+                reaction = reaction_record(reaction_smiles, self.vocab)
 
                 if self.pre_filter is not None and not self.pre_filter(reaction):
                     continue
@@ -99,5 +136,5 @@ class reaction_record_dataset(Dataset):
         processed_filepath = self.processed_filepaths[idx]
         reaction_data = torch.load(processed_filepath) # load graph
 
-        return reaction_data.pyg_data, reaction_data.rhs_smiles
+        return reaction_data.pyg_data, reaction_data.rhs_wordidx_tensor
         # TODO: make one-hot batch here...
