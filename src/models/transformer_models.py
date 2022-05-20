@@ -4,6 +4,8 @@ import math
 import torch
 import torch.nn as nn
 
+from utils.vocab_utils import PAD_INDEX
+
 class PositionalEncoding(nn.Module):
 
     def __init__(self, d_model: int, dropout: float = 0.1, max_len: int = 5000):
@@ -24,15 +26,17 @@ class PositionalEncoding(nn.Module):
 
 class TransDecoder(nn.Module):
 
-    def __init__(self, d_model = 128, n_head = 8, num_dec_layers = 4):
+    def __init__(self, d_model, n_head, num_dec_layers, vocab_size, device):
         super().__init__()
-        self.tgt_embedding = None # TODO
+        self.tgt_embedding = nn.Embedding(
+            vocab_size, d_model, padding_idx = PAD_INDEX, device = device
+        )
         self.pos_encoder = PositionalEncoding(d_model = d_model)
 
         dec_layers = nn.TransformerDecoderLayer(d_model = d_model, nhead = n_head)
         self.decoder = nn.TransformerDecoder(dec_layers, num_layers = num_dec_layers)
 
-    def forward(self, TARGET, TARGET_KEY_MASK, MEM, MEM_KEY_MASK):
-        #! WHEN TO DO PADDING? BEFORE OR AFTER EMBEDDING MATRIX?
-        #! CHANGING PADDING VALUE TO '0' MAKES BOTH OKAY (PREFER BEFORE)
+    def forward(self, target, target_padding_mask, memory, memory_padding_mask):
+        abc = self.tgt_embedding(target)
+        print(abc.shape)
         pass

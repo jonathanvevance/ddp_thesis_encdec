@@ -3,28 +3,27 @@
 
 import re
 
-PAD_TOKEN = 0   # Used for padding short sentences
-SOS_TOKEN = 1   # Start-of-sentence token
-EOS_TOKEN = 2   # End-of-sentence token
+PAD_INDEX = 0 # Used for padding short sentences
+SOS_INDEX = 1 # Start-of-sentence token
+EOS_INDEX = 2 # End-of-sentence token
 
 class Vocabulary:
 
     def __init__(self):
         self.word2index = {
-            "<PAD>": PAD_TOKEN,
-            "<SOS>": SOS_TOKEN,
-            "<EOS>": EOS_TOKEN,
+            "<PAD>": PAD_INDEX,
+            "<SOS>": SOS_INDEX,
+            "<EOS>": EOS_INDEX,
+        }
+        self.index2word = {
+            PAD_INDEX: "<PAD>",
+            SOS_INDEX: "<SOS>",
+            EOS_INDEX: "<EOS>",
         }
         self.word2count = {
             "<PAD>": 0,
             "<SOS>": 0,
             "<EOS>": 0,
-        }
-
-        self.index2word = {
-            PAD_TOKEN: "<PAD>",
-            SOS_TOKEN: "<SOS>",
-            EOS_TOKEN: "<EOS>",
         }
 
         self.num_words = 3

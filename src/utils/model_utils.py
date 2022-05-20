@@ -5,13 +5,16 @@ import torch
 
 from models.mpnn_models import GCN_2layer
 from models.mpnn_models import GAT_2layer
+from models.transformer_models import TransDecoder
 
 def load_models(cfg):
 
     # model_mpnn = GAT_2layer(2, 32, 'train')
     model_mpnn = GCN_2layer(2, 32, 'train')
     model_enc = None # TODO
-    model_dec = None # TODO
+    model_dec = TransDecoder(
+        cfg.EMBEDDING_DIM, cfg.NUM_HEADS, cfg.NUM_DECODER_LAYERS, cfg.VOCAB_SIZE, cfg.DEVICE
+    )
 
     # if saved model exists, load it
     # if cfg.LOAD_MODEL_PATH and os.path.exists(cfg.LOAD_MODEL_PATH):

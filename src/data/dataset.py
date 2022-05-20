@@ -2,6 +2,7 @@
 
 import os
 import torch
+import torch.nn as nn
 from tqdm import tqdm
 from rdkit import Chem
 from torch_geometric.data import Data
@@ -11,6 +12,7 @@ from utils.rdkit_utils import get_pyg_graph_requirements
 from utils.rdkit_utils import remove_atom_maps_from_smi
 from utils.vocab_utils import Vocabulary
 from utils.vocab_utils import smi_tokenizer
+from utils.vocab_utils import PAD_INDEX
 
 PROCESSED_DATASET_LOC = 'data/processed/'
 
@@ -33,7 +35,11 @@ class reaction_record:
         for word in rhs_smi_sentence.split(' '):
             rhs_wordidx_list.append(vocabulary.to_index(word))
 
-        self.rhs_wordidx_tensor = torch.Tensor(rhs_wordidx_list)
+        const_padder = nn.ConstantPad1d(
+            (0, vocabulary.longest_sentence - len(rhs_wordidx_list)), PAD_INDEX
+        )
+        self.tgt_wordidx_tensor = const_padder(torch.Tensor(rhs_wordidx_list))
+        self.tgt_wordidx_pad_mask = torch.BoolTensor((self.tgt_wordidx_tensor == PAD_INDEX).cpu()).t()
 
 class reaction_record_dataset(Dataset):
 
@@ -107,7 +113,7 @@ class reaction_record_dataset(Dataset):
                 train_dataset, desc = f"Preparing {self.mode} reactions", total = num_rxns
             )):
 
-                if rxn_num == 50000: return # TODO: remove
+                if rxn_num == 500: return # TODO: remove
 
                 processed_filepath = os.path.join(self.processed_mode_dir, f'rxn_{rxn_num}.pt')
                 if rxn_num < start_from + 1:
@@ -136,5 +142,8 @@ class reaction_record_dataset(Dataset):
         processed_filepath = self.processed_filepaths[idx]
         reaction_data = torch.load(processed_filepath) # load graph
 
-        return reaction_data.pyg_data, reaction_data.rhs_wordidx_tensor
-        # TODO: make one-hot batch here...
+        return (
+            reaction_data.pyg_data,
+            reaction_data.tgt_wordidx_tensor,
+            reaction_data.tgt_wordidx_pad_mask
+        )

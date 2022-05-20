@@ -44,18 +44,21 @@ def train():
         dataset_filepath = train_dataset_filepath,
         mode = 'train',
     )
+    cfg.VOCAB_SIZE = train_dataset.vocab.num_words # adding vocab size to cfg object
     train_loader = DataLoader(train_dataset, batch_size = cfg.BATCH_SIZE, shuffle = True)
+
+    # ----- Get available device
+    cfg.DEVICE = torch.device(
+        'cuda' if torch.cuda.is_available() else 'cpu'
+    ) # adding device to cfg object
 
     # ----- Load models
     model_mpnn, model_enc, model_dec = load_models(cfg)
-
-    # ----- Get available device
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    model_mpnn = model_mpnn.to(device)
-    model_dec = model_dec.to(device)
+    model_mpnn = model_mpnn.to(cfg.DEVICE)
+    model_dec = model_dec.to(cfg.DEVICE)
 
     if model_enc:
-        model_enc = model_enc.to(device)
+        model_enc = model_enc.to(cfg.DEVICE)
         all_params = chain(
             model_mpnn.parameters(), model_enc.parameters(), model_dec.parameters()
         )
@@ -70,9 +73,11 @@ def train():
         running_loss = 0.0
         for idx, train_batch in enumerate(train_loader):
 
-            graph_batch, target_smiles_batch = train_batch
-            graph_batch = graph_batch.to(device)
-            # target_smiles_batch = target_smiles_batch.to(device) # TODO: make one-hot batch from dataset.py...
+            graph_batch, target_smiles_batch, target_smiles_padding = train_batch
+            graph_batch = graph_batch.to(cfg.DEVICE)
+            target_smiles_batch = target_smiles_batch.to(cfg.DEVICE)
+            target_smiles_padding = target_smiles_padding.to(cfg.DEVICE)
+
             optimizer.zero_grad()
 
             ## STEP 1: Standard Message passing operation on the graph
@@ -82,15 +87,20 @@ def train():
             )
 
             ## Step 2: Reshape graph batch into Transformer compatible inputs
-            atom_enc_features_batched, batch_pad_mask = groupby_pad_batch(
+            atom_enc_features_batched, atom_enc_features_padding = groupby_pad_batch(
                 atom_enc_features, graph_batch.batch
             )
 
             ## STEP 3: Forward pass on atom features using a Transformer Encoder
             if model_enc:
-                atom_enc_features_batched = model_enc(atom_enc_features_batched, batch_pad_mask)
+                atom_enc_features_batched = model_enc(
+                    atom_enc_features_batched, atom_enc_features_padding
+                )
 
             ## STEP 4: Generate the RHS text sequence from atom latent vectors
+            model_dec(
+                target_smiles_batch, target_smiles_padding, atom_enc_features_batched, atom_enc_features_padding
+            )
             exit()
 
             loss = criterion(output, targets)
