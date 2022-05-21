@@ -98,9 +98,11 @@ def train():
                 )
 
             ## STEP 4: Generate the RHS text sequence from atom latent vectors
-            model_dec(
+            predictions_batch = model_dec(
                 target_smiles_batch, target_smiles_padding, atom_enc_features_batched, atom_enc_features_padding
             )
+
+            
             exit()
 
             loss = criterion(output, targets)

@@ -60,4 +60,5 @@ class TransDecoder(nn.Module):
             memory_key_padding_mask = memory_padding_mask,
         )
 
+        # TODO: triangular mask for attention
         return nn.Softmax(dim = 2)(self.linear(dec_output))
