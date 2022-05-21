@@ -83,7 +83,7 @@ def train():
             ## STEP 1: Standard Message passing operation on the graph
             # train_batch.x = 'BATCH' graph and train_batch.edge_matrix = 'BATCH' edge matrix
             atom_enc_features = model_mpnn(
-                graph_batch.x.float(), graph_batch.edge_index, graph_batch.edge_attr.float()
+                graph_batch.x, graph_batch.edge_index, graph_batch.edge_attr
             )
 
             ## Step 2: Reshape graph batch into Transformer compatible inputs

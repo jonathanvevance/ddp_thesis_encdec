@@ -24,9 +24,9 @@ class reaction_record:
 
         pyg_requirements = get_pyg_graph_requirements(self.lhs_mol)
         self.pyg_data = Data(
-            x = torch.tensor(pyg_requirements['x']),
+            x = torch.tensor(pyg_requirements['x']).float(),
             edge_index = torch.tensor(pyg_requirements['edge_index']),
-            edge_attr = torch.tensor(pyg_requirements['edge_attr']),
+            edge_attr = torch.tensor(pyg_requirements['edge_attr']).float(),
         )
 
         rhs_wordidx_list = []
@@ -38,7 +38,7 @@ class reaction_record:
         const_padder = nn.ConstantPad1d(
             (0, vocabulary.longest_sentence - len(rhs_wordidx_list)), PAD_INDEX
         )
-        self.tgt_wordidx_tensor = const_padder(torch.Tensor(rhs_wordidx_list))
+        self.tgt_wordidx_tensor = const_padder(torch.Tensor(rhs_wordidx_list)).to(torch.int64)
         self.tgt_wordidx_pad_mask = torch.BoolTensor((self.tgt_wordidx_tensor == PAD_INDEX).cpu()).t()
 
 class reaction_record_dataset(Dataset):

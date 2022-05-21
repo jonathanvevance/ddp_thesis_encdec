@@ -10,7 +10,7 @@ from models.transformer_models import TransDecoder
 def load_models(cfg):
 
     # model_mpnn = GAT_2layer(2, 32, 'train')
-    model_mpnn = GCN_2layer(2, 32, 'train')
+    model_mpnn = GCN_2layer(2, cfg.EMBEDDING_DIM, 'train')
     model_enc = None # TODO
     model_dec = TransDecoder(
         cfg.EMBEDDING_DIM, cfg.NUM_HEADS, cfg.NUM_DECODER_LAYERS, cfg.VOCAB_SIZE, cfg.DEVICE
