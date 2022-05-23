@@ -7,6 +7,8 @@ PAD_INDEX = 0 # Used for padding short sentences
 SOS_INDEX = 1 # Start-of-sentence token
 EOS_INDEX = 2 # End-of-sentence token
 
+# TODO: handle out of vocab tokens (in test and val target seq)
+
 class Vocabulary:
 
     def __init__(self):
@@ -29,6 +31,7 @@ class Vocabulary:
         self.num_words = 3
         self.num_sentences = 0
         self.longest_sentence = 0
+        self.PAD_INDEX = PAD_INDEX
 
     def add_word(self, word):
         if word not in self.word2index:

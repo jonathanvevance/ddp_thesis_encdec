@@ -4,9 +4,10 @@ import torch
 from torch.nn.utils.rnn import pad_sequence
 
 # https://twitter.com/jeremyphoward/status/1185062637341593600?s=20&t=dE5aS3G8UxDERC_IUeuVCA
-# https://stackoverflow.com/questions/61688282/how-to-get-padding-mask-from-input-ids
-# https://stackoverflow.com/questions/62399243/transformerencoder-with-a-padding-mask
 # https://stackoverflow.com/questions/62170439/difference-between-src-mask-and-src-key-padding-mask
+
+# TODO: masking True vs False confirm
+# TODO: attention mask upper/lower triangular
 
 def groupby_pad_batch(graph_tensor_2d, graph_node_labels):
     """Return length-padded tensor and padding mask."""
@@ -16,3 +17,9 @@ def groupby_pad_batch(graph_tensor_2d, graph_node_labels):
     pad_mask = torch.BoolTensor((padded_tensor[:, :, 0] == 0).cpu())\
                     .t().to(padded_tensor.device) # (B x L)
     return padded_tensor, pad_mask
+
+
+def get_attention_mask(seq_len):
+    nopeak_mask = torch.triu(torch.ones((seq_len, seq_len)), diagonal=1)
+    nopeak_mask = torch.BoolTensor(nopeak_mask != 0)
+    return nopeak_mask

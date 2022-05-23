@@ -12,7 +12,6 @@ from utils.rdkit_utils import get_pyg_graph_requirements
 from utils.rdkit_utils import remove_atom_maps_from_smi
 from utils.vocab_utils import Vocabulary
 from utils.vocab_utils import smi_tokenizer
-from utils.vocab_utils import PAD_INDEX
 
 PROCESSED_DATASET_LOC = 'data/processed/'
 
@@ -36,10 +35,10 @@ class reaction_record:
             rhs_wordidx_list.append(vocabulary.to_index(word))
 
         const_padder = nn.ConstantPad1d(
-            (0, vocabulary.longest_sentence - len(rhs_wordidx_list)), PAD_INDEX
+            (0, vocabulary.longest_sentence - len(rhs_wordidx_list)), vocabulary.PAD_INDEX
         )
         self.tgt_wordidx_tensor = const_padder(torch.Tensor(rhs_wordidx_list)).to(torch.int64)
-        self.tgt_wordidx_pad_mask = torch.BoolTensor((self.tgt_wordidx_tensor == PAD_INDEX).cpu()).t()
+        self.tgt_pad_mask = torch.BoolTensor((self.tgt_wordidx_tensor == vocabulary.PAD_INDEX).cpu()).t()
 
 class reaction_record_dataset(Dataset):
 
@@ -62,6 +61,7 @@ class reaction_record_dataset(Dataset):
 
         self.mode = mode
         self.vocab = None
+        self.IGNORE_INDEX = None
         self.dataset_filepath = dataset_filepath
         self.processed_mode_dir = os.path.join(PROCESSED_DATASET_LOC, self.mode)
         self.processed_filepaths = []
@@ -100,6 +100,8 @@ class reaction_record_dataset(Dataset):
         if self.mode == 'train':
             self.get_smiles_vocab()
 
+        self.IGNORE_INDEX = self.vocab.PAD_INDEX
+
         reaction_files = os.listdir(self.processed_mode_dir)
         if len(reaction_files):
             start_from = max(int(reaction_file[4:-3]) for reaction_file in reaction_files)
@@ -132,6 +134,14 @@ class reaction_record_dataset(Dataset):
                 torch.save(reaction, processed_filepath)
                 self.processed_filepaths.append(processed_filepath)
 
+    def get_longest_sentence(self):
+        """Return length of the longest sentence."""
+        return self.vocab.longest_sentence
+
+    def get_num_words(self):
+        """Return number of words in the vocabulary."""
+        return self.vocab.num_words
+
     def len(self):
         """Get length of reaction dataset."""
         return len(self.processed_filepaths)
@@ -145,5 +155,5 @@ class reaction_record_dataset(Dataset):
         return (
             reaction_data.pyg_data,
             reaction_data.tgt_wordidx_tensor,
-            reaction_data.tgt_wordidx_pad_mask
+            reaction_data.tgt_pad_mask,
         )

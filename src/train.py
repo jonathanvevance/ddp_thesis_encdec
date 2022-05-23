@@ -1,14 +1,6 @@
 """Python file to train the model."""
-
-"""
-
-MITUSPTO = rxn smiles
-LHS smiles      --> graph obj
-graph obj       --> (MPNN) node features
-node features   --> (Transformer) output sequence
-output sequence --> (loss)
-
-"""
+# https://www.analyticsvidhya.com/blog/2021/06/language-translation-with-transformer-in-python/
+# https://hyugen-ai.medium.com/transformers-in-pytorch-from-scratch-for-nlp-beginners-ff3b3d922ef7
 
 import os
 os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
@@ -22,8 +14,7 @@ from data.dataset import reaction_record_dataset
 from utils.model_utils import load_models
 from utils.model_utils import save_models
 from utils.torch_utils import groupby_pad_batch
-
-
+from utils.torch_utils import get_attention_mask
 
 RAW_DATASET_PATH = 'data/raw/'
 
@@ -44,7 +35,7 @@ def train():
         dataset_filepath = train_dataset_filepath,
         mode = 'train',
     )
-    cfg.VOCAB_SIZE = train_dataset.vocab.num_words # adding vocab size to cfg object
+    cfg.VOCAB_SIZE = train_dataset.get_num_words() # adding vocab size to cfg object
     train_loader = DataLoader(train_dataset, batch_size = cfg.BATCH_SIZE, shuffle = True)
 
     # ----- Get available device
@@ -67,16 +58,20 @@ def train():
 
     # ----- Load training settings
     optimizer = torch.optim.Adam(all_params, lr = cfg.LR, weight_decay = cfg.WEIGHT_DECAY)
-    criterion = torch.nn.BCELoss() # TODO: seq2seq loss
+    criterion = torch.nn.CrossEntropyLoss(ignore_index = train_dataset.IGNORE_INDEX)
+
+    # ----- Get target mask
+    tgt_mask = get_attention_mask(train_dataset.get_longest_sentence())
+    tgt_mask = tgt_mask.to(cfg.DEVICE) # to prevent cheating by looking ahead
 
     for epoch in range(cfg.EPOCHS):
         running_loss = 0.0
         for idx, train_batch in enumerate(train_loader):
 
-            graph_batch, target_smiles_batch, target_smiles_padding = train_batch
+            graph_batch, tgt_batch, tgt_pad_mask = train_batch
             graph_batch = graph_batch.to(cfg.DEVICE)
-            target_smiles_batch = target_smiles_batch.to(cfg.DEVICE)
-            target_smiles_padding = target_smiles_padding.to(cfg.DEVICE)
+            tgt_batch = tgt_batch.to(cfg.DEVICE)
+            tgt_pad_mask = tgt_pad_mask.to(cfg.DEVICE)
 
             optimizer.zero_grad()
 
@@ -97,24 +92,21 @@ def train():
                     atom_enc_features_batched, atom_enc_features_padding
                 )
 
-            ## STEP 4: Generate the RHS text sequence from atom latent vectors
-            predictions_batch = model_dec(
-                target_smiles_batch, target_smiles_padding, atom_enc_features_batched, atom_enc_features_padding
+            ## STEP 4: Generate the RHS text sequence logits from atom latent vectors
+            logits = model_dec(
+                tgt_batch, tgt_pad_mask, tgt_mask, atom_enc_features_batched, atom_enc_features_padding
             )
 
-            
-            exit()
-
-            loss = criterion(output, targets)
+            loss = criterion(logits.reshape(-1, logits.shape[-1]), tgt_batch.reshape(-1))
             loss.backward()
             optimizer.step()
 
-            # # print statistics
-            # running_loss += loss.item()
-            # if idx % 100 == 99:    # print every 100 mini-batches
-            #     save_models(cfg, model_mpnn, model_feedforward, model_scoring)
-            #     print(f'At epoch: {epoch + 1}, minibatch: {idx + 1:5d} | running_loss: {running_loss}')
-            #     running_loss = 0.0
+            # print statistics
+            running_loss += loss.item()
+            if idx % 100 == 99:    # print every 100 mini-batches
+                save_models(cfg, model_mpnn, model_feedforward, model_scoring)
+                print(f'At epoch: {epoch + 1}, minibatch: {idx + 1:5d} | running_loss: {running_loss}')
+                running_loss = 0.0
 
     print('Finished Training')
 

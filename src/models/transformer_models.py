@@ -24,8 +24,6 @@ class PositionalEncoding(nn.Module):
         return self.dropout(x)
 
 
-# https://stackoverflow.com/questions/62399243/transformerencoder-with-a-padding-mask
-
 class TransDecoder(nn.Module):
 
     def __init__(self, d_model, n_head, num_dec_layers, vocab_size, device):
@@ -38,14 +36,13 @@ class TransDecoder(nn.Module):
         self.pos_encoder = PositionalEncoding(d_model = d_model)
 
         dec_layers = nn.TransformerDecoderLayer(d_model = d_model, nhead = n_head)
-        device
         decoder_norm = nn.LayerNorm(d_model, device = device)
         self.decoder = nn.TransformerDecoder(
             dec_layers, num_layers = num_dec_layers, norm = decoder_norm
         )
         self.linear = nn.Linear(d_model, vocab_size)
 
-    def forward(self, target, target_padding_mask, memory, memory_padding_mask):
+    def forward(self, target, target_padding_mask, target_mask, memory, memory_padding_mask):
 
         target = target.t() # For reasoning of transpose, see link below
         # https://stackoverflow.com/questions/62170439/difference-between-src-mask-and-src-key-padding-mask
@@ -56,9 +53,9 @@ class TransDecoder(nn.Module):
         dec_output = self.decoder(
             tgt = target,
             memory = memory,
+            tgt_mask = target_mask,
             tgt_key_padding_mask = target_padding_mask,
             memory_key_padding_mask = memory_padding_mask,
         )
 
-        # TODO: triangular mask for attention
         return nn.Softmax(dim = 2)(self.linear(dec_output))
