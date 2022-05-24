@@ -9,7 +9,7 @@ from models.transformer_models import TransDecoder
 
 def load_models(cfg):
 
-    # model_mpnn = GAT_2layer(2, 32, 'train')
+    # model_mpnn = GAT_2layer(2, cfg.EMBEDDING_DIM, 'train')
     model_mpnn = GCN_2layer(2, cfg.EMBEDDING_DIM, 'train')
     model_enc = None # TODO
     model_dec = TransDecoder(
@@ -17,23 +17,20 @@ def load_models(cfg):
     )
 
     # if saved model exists, load it
-    # if cfg.LOAD_MODEL_PATH and os.path.exists(cfg.LOAD_MODEL_PATH):
-    #     model_weights = torch.load(cfg.LOAD_MODEL_PATH)
-    #     model_mpnn.load_state_dict(model_weights['mpnn'])
-    #     model_feedforward.load_state_dict(model_weights['feedforward'])
-    #     model_scoring.load_state_dict(model_weights['scoring'])
+    if cfg.LOAD_MODEL_PATH and os.path.exists(cfg.LOAD_MODEL_PATH):
+        model_weights = torch.load(cfg.LOAD_MODEL_PATH)
+        model_mpnn.load_state_dict(model_weights['mpnn'])
+        if model_enc:
+            model_enc.load_state_dict(model_weights['enc'])
+        model_dec.load_state_dict(model_weights['dec'])
 
     return model_mpnn, model_enc, model_dec
 
-    pass
+def save_models(cfg, model_mpnn, model_enc, model_dec):
 
-def save_models(cfg, model_mpnn, model_feedforward, model_scoring):
-
-    # model_weights_dict = {
-    #     'mpnn': model_mpnn.state_dict(),
-    #     'feedforward': model_feedforward.state_dict(),
-    #     'scoring': model_scoring.state_dict(),
-    # }
-    # torch.save(model_weights_dict, cfg.SAVE_MODEL_PATH)
-
-    pass
+    model_weights_dict = {
+        'mpnn': model_mpnn.state_dict(),
+        'enc': model_enc.state_dict() if model_enc else None,
+        'dec': model_dec.state_dict(),
+    }
+    torch.save(model_weights_dict, cfg.SAVE_MODEL_PATH)
