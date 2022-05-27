@@ -23,9 +23,9 @@ class reaction_record:
 
         pyg_requirements = get_pyg_graph_requirements(self.lhs_mol)
         self.pyg_data = Data(
-            x = torch.tensor(pyg_requirements['x']).float(),
+            x = torch.tensor(pyg_requirements['x']),
             edge_index = torch.tensor(pyg_requirements['edge_index']),
-            edge_attr = torch.tensor(pyg_requirements['edge_attr']).float(),
+            edge_attr = torch.tensor(pyg_requirements['edge_attr']),
         )
 
         rhs_wordidx_list = []

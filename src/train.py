@@ -44,19 +44,22 @@ def train():
     ) # adding device to cfg object
 
     # ----- Load models
-    model_mpnn, model_enc, model_dec = load_models(cfg)
+    cfg.MPNN_FEATURES_DIM = (2 * cfg.LHS_EMBEDDING_DIM) if cfg.USE_LHS_EMBEDDING else 2
+    model_mpnn, model_enc, model_dec, model_embedding = load_models(cfg)
     model_mpnn = model_mpnn.to(cfg.DEVICE)
     model_dec = model_dec.to(cfg.DEVICE)
+    model_params = [model_mpnn.parameters(), model_dec.parameters()]
+
+    if model_embedding:
+        model_embedding = model_embedding.to(cfg.DEVICE)
+        model_params = model_params + [model_embedding.parameters()]
 
     if model_enc:
         model_enc = model_enc.to(cfg.DEVICE)
-        all_params = chain(
-            model_mpnn.parameters(), model_enc.parameters(), model_dec.parameters()
-        )
-    else:
-        all_params = chain(model_mpnn.parameters(), model_dec.parameters())
+        model_params = model_params + [model_enc.parameters()]
 
     # ----- Load training settings
+    all_params = chain(*model_params)
     optimizer = torch.optim.Adam(all_params, lr = cfg.LR, weight_decay = cfg.WEIGHT_DECAY)
     criterion = torch.nn.CrossEntropyLoss(ignore_index = train_dataset.IGNORE_INDEX)
 
@@ -75,24 +78,29 @@ def train():
 
             optimizer.zero_grad()
 
-            ## STEP 1: Standard Message passing operation on the graph
-            # train_batch.x = 'BATCH' graph and train_batch.edge_matrix = 'BATCH' edge matrix
-            atom_enc_features = model_mpnn(
-                graph_batch.x, graph_batch.edge_index, graph_batch.edge_attr
-            )
+            ## STEP 1: Get embeddings of graph features
+            if model_embedding:
+                graph_x, graph_edge_attr = model_embedding(graph_batch.x, graph_batch.edge_attr)
+            else:
+                graph_x = graph_batch.x.float()
+                graph_edge_attr = graph_batch.edge_attr.float()
 
-            ## Step 2: Reshape graph batch into Transformer compatible inputs
+            ## STEP 2: Standard Message passing operation on the graph
+            # train_batch.x = 'BATCH' graph and train_batch.edge_matrix = 'BATCH' edge matrix
+            atom_enc_features = model_mpnn(graph_x, graph_batch.edge_index, graph_edge_attr)
+
+            ## Step 3: Reshape graph batch into Transformer compatible inputs
             atom_enc_features_batched, atom_enc_features_padding = groupby_pad_batch(
                 atom_enc_features, graph_batch.batch
             )
 
-            ## STEP 3: Forward pass on atom features using a Transformer Encoder
+            ## STEP 4: Forward pass on atom features using a Transformer Encoder
             if model_enc:
                 atom_enc_features_batched = model_enc(
                     atom_enc_features_batched, atom_enc_features_padding
                 )
 
-            ## STEP 4: Generate the RHS text sequence logits from atom latent vectors
+            ## STEP 5: Generate the RHS text sequence logits from atom latent vectors
             logits = model_dec(
                 tgt_batch, tgt_pad_mask, tgt_mask, atom_enc_features_batched, atom_enc_features_padding
             )
@@ -103,9 +111,8 @@ def train():
 
             # print statistics
             running_loss += loss.item()
-            print(running_loss)
             if idx % 10 == 9:    # print every 100 mini-batches
-                save_models(cfg, model_mpnn, model_enc, model_dec)
+                save_models(cfg, model_mpnn, model_enc, model_dec, model_embedding)
                 print(f'At epoch: {epoch + 1}, minibatch: {idx + 1:5d} | running_loss: {running_loss}')
                 running_loss = 0.0
 
