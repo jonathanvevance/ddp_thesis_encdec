@@ -44,7 +44,6 @@ def train():
     ) # adding device to cfg object
 
     # ----- Load models
-    cfg.MPNN_FEATURES_DIM = (2 * cfg.LHS_EMBEDDING_DIM) if cfg.USE_LHS_EMBEDDING else 2
     model_mpnn, model_enc, model_dec, model_embedding = load_models(cfg)
     model_mpnn = model_mpnn.to(cfg.DEVICE)
     model_dec = model_dec.to(cfg.DEVICE)
