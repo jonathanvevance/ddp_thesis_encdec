@@ -6,7 +6,6 @@ import os
 os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
 import torch
 from itertools import chain
-from tqdm import tqdm
 from torch_geometric.loader import DataLoader
 
 import configs.train_cfg as cfg
