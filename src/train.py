@@ -109,7 +109,7 @@ def train():
 
             # print statistics
             running_loss += loss.item()
-            if idx % 10 == 9:    # print every 100 mini-batches
+            if idx % 100 == 99:    # print every 100 mini-batches
                 save_models(cfg, model_mpnn, model_enc, model_dec, model_embedding)
                 print(f'At epoch: {epoch + 1}, minibatch: {idx + 1:5d} | running_loss: {running_loss}')
                 running_loss = 0.0
