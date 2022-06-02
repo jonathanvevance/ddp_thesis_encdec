@@ -1,6 +1,7 @@
 """Python file with dataset classes."""
 
 import os
+import random
 import torch
 import torch.nn as nn
 from tqdm import tqdm
@@ -149,8 +150,15 @@ class reaction_record_dataset(Dataset):
     def get(self, idx):
         """Get data point for given reaction-idx."""
 
-        processed_filepath = self.processed_filepaths[idx]
-        reaction_data = torch.load(processed_filepath) # load graph
+        successful = False
+        while not successful:
+            try:
+                processed_filepath = self.processed_filepaths[idx]
+                reaction_data = torch.load(processed_filepath) # load graph
+                successful = True
+            except: # Try another index
+                idx = random.randint(0, len(self.processed_filepaths) - 1)
+
 
         return (
             reaction_data.pyg_data,
