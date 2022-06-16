@@ -65,6 +65,9 @@ def train():
     tgt_mask = get_attention_mask(train_dataset.get_longest_sentence())
     tgt_mask = tgt_mask.to(cfg.DEVICE) # to prevent cheating by looking ahead
 
+    # ---- For debugging gradients
+    torch.autograd.set_detect_anomaly(True)
+
     for epoch in range(cfg.EPOCHS):
         running_loss = 0.0
         for idx, train_batch in enumerate(train_loader):
@@ -76,6 +79,12 @@ def train():
 
             optimizer.zero_grad()
 
+            #! DEBUG
+            if graph_batch.x.isnan().any():
+                raise RuntimeError("Something wrong with input x")
+            if graph_batch.edge_attr.isnan().any():
+                raise RuntimeError("Something wrong with input edge")
+
             ## STEP 1: Get embeddings of graph features
             if model_embedding:
                 graph_x, graph_edge_attr = model_embedding(graph_batch.x, graph_batch.edge_attr)
@@ -83,14 +92,31 @@ def train():
                 graph_x = graph_batch.x.float()
                 graph_edge_attr = graph_batch.edge_attr.float()
 
+            #! DEBUG
+            if graph_x.isnan().any():
+                raise RuntimeError("Something wrong with embedding module - x")
+            if graph_edge_attr.isnan().any():
+                raise RuntimeError("Something wrong with embedding module - edge")
+
+            #! NOTE: has to be gradient explosion because the FIRST model always gives NAN.
+            #! which means the earliest layers start having NaN weights?
+
             ## STEP 2: Standard Message passing operation on the graph
             # train_batch.x = 'BATCH' graph and train_batch.edge_matrix = 'BATCH' edge matrix
             atom_enc_features = model_mpnn(graph_x, graph_batch.edge_index, graph_edge_attr)
+
+            #! DEBUG
+            if atom_enc_features.isnan().any():
+                raise RuntimeError("Something wrong with mpnn module")
 
             ## Step 3: Reshape graph batch into Transformer compatible inputs
             atom_enc_features_batched, atom_enc_features_padding = groupby_pad_batch(
                 atom_enc_features, graph_batch.batch
             )
+
+            #! DEBUG
+            if atom_enc_features_batched.isnan().any():
+                raise RuntimeError("Something wrong with groupby module")
 
             ## STEP 4: Forward pass on atom features using a Transformer Encoder
             if model_enc:
@@ -98,13 +124,28 @@ def train():
                     atom_enc_features_batched, atom_enc_features_padding
                 )
 
+            #! DEBUG
+            if tgt_batch.isnan().any():
+                raise RuntimeError("Something wrong with input - tgt_batch")
+            if tgt_pad_mask.isnan().any():
+                raise RuntimeError("Something wrong with input - tgt_pad_mask")
+            if atom_enc_features_padding.isnan().any():
+                raise RuntimeError("Something wrong with input - atom_enc_features_padding")
+
             ## STEP 5: Generate the RHS text sequence logits from atom latent vectors
             logits = model_dec(
                 tgt_batch, tgt_pad_mask, tgt_mask, atom_enc_features_batched, atom_enc_features_padding
             )
 
+            #! DEBUG
+            if logits.isnan().any():
+                raise RuntimeError("Something wrong with input - logits")
+
             loss = criterion(logits.reshape(-1, logits.shape[-1]), tgt_batch.reshape(-1))
             loss.backward()
+
+            if cfg.GRAD_CLIP: # Gradient clipping
+                torch.nn.utils.clip_grad_norm_(all_params, max_norm = cfg.GRAD_CLIP_MAX_NORM)
             optimizer.step()
 
             # print statistics
