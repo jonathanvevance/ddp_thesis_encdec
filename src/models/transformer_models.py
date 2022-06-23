@@ -50,6 +50,10 @@ class TransDecoder(nn.Module):
         target = self.pos_encoder(self.tgt_embedding(target) * math.sqrt(self.d_model))
         # For reasoning of this scale up, see https://pytorch.org/tutorials/beginner/transformer_tutorial.html
 
+        #! DEBUG
+        if target.isnan().any():
+            raise RuntimeError("Problem is in positional encoder or tgt embedding")
+
         dec_output = self.decoder(
             tgt = target,
             memory = memory,
@@ -57,5 +61,9 @@ class TransDecoder(nn.Module):
             tgt_key_padding_mask = target_padding_mask,
             memory_key_padding_mask = memory_padding_mask,
         )
+
+        #! DEBUG
+        if dec_output.isnan().any():
+            raise RuntimeError("Problem is in torch Trans Decoder")
 
         return nn.Softmax(dim = 2)(self.linear(dec_output))

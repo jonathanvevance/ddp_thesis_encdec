@@ -98,9 +98,6 @@ def train():
             if graph_edge_attr.isnan().any():
                 raise RuntimeError("Something wrong with embedding module - edge")
 
-            #! NOTE: has to be gradient explosion because the FIRST model always gives NAN.
-            #! which means the earliest layers start having NaN weights?
-
             ## STEP 2: Standard Message passing operation on the graph
             # train_batch.x = 'BATCH' graph and train_batch.edge_matrix = 'BATCH' edge matrix
             atom_enc_features = model_mpnn(graph_x, graph_batch.edge_index, graph_edge_attr)
