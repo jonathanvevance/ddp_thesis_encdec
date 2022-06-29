@@ -114,7 +114,7 @@ Note that the code has been run and verified on Ubuntu as well as Windows system
 3.  Edit src/configs/train_cfg.py file with the required training settings.
 4.  From the root directory, run
     ```sh
-    python src/train_pairwise.py
+    python src/train.py
     ```
     
 <p align="right">(<a href="#top">back to top</a>)</p>
