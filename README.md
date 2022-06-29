@@ -159,13 +159,7 @@ Note that the code has been run and verified on Ubuntu as well as Windows system
     │   │   ├── embedding_models.py       <- Python file containing Embedding class definitions
     │   │   └── mpnn_models.py            <- Python file containing graph neural network (GNN) model class definitions
     │   │   └── transformer_models.py     <- Python file containing Transformer model definitions.
-    │   │
-    │   ├── rdkit_helpers       <- Scripts containing helpers for RDKit operations
-    │   │   ├── features.py               <- Python file to extract molecular graph features
-    │   │   ├── generic.py                <- Python file containing generic helpers for RDKit operations
-    │   │   └── substructure_keys.py      <- Python file containing SMARTS strings for fingerprints
-    │   │   └── substructures.py          <- Python file to match MACCS substructures with molecules
-    │   │
+    |   |
     │   ├── utils               <- Scripts for basic operations
     │   │   └── model_utils.py            <- Python file containing helpers for saving and loading models
     │   │   └── rdkit_utils.py            <- Python file containing helpers for RDKit operations
